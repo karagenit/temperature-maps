@@ -26,10 +26,10 @@ def create_basic_zipcode_map():
     ax.set_title('US ZIP Code Boundaries', fontsize=15)
     ax.set_axis_off()
     
-    # Save the map
-    output_file = 'us_zipcodes_map.png'
+    # Save the map as SVG
+    output_file = 'us_zipcodes_map.svg'
     print(f"Saving map to {output_file}...")
-    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    plt.savefig(output_file, format='svg', bbox_inches='tight')
     
     print("Map created successfully!")
 
