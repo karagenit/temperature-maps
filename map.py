@@ -27,6 +27,11 @@ def create_basic_zipcode_map():
         linewidth=0.1
     )
     
+    # Set the boundaries to focus on the US (excluding most of the empty space)
+    # These coordinates roughly cover the continental US plus Alaska and Hawaii
+    ax.set_xlim(-180, -65)  # Longitude from Alaska to East Coast
+    ax.set_ylim(15, 75)     # Latitude from below Hawaii to above Alaska
+    
     ax.set_title('US ZIP Code Boundaries', fontsize=15)
     ax.set_axis_off()
     
@@ -46,6 +51,10 @@ def create_basic_zipcode_map():
         facecolor='none',
         linewidth=0.1
     )
+    
+    # Apply the same boundaries to the SVG map
+    ax.set_xlim(-180, -65)
+    ax.set_ylim(15, 75)
     
     ax.set_title('US ZIP Code Boundaries (Simplified)', fontsize=15)
     ax.set_axis_off()
