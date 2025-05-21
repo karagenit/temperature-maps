@@ -10,11 +10,16 @@ def create_basic_zipcode_map():
     print(f"Loaded {len(zipcode_gdf)} zipcodes")
     print(f"Columns in the shapefile: {zipcode_gdf.columns.tolist()}")
     
-    # Create a simple plot with zipcode outlines
-    print("Creating map...")
+    # Simplify the geometry to reduce file size
+    # The tolerance parameter controls the level of simplification
+    print("Simplifying geometry for SVG output...")
+    simplified_gdf = zipcode_gdf.copy()
+    simplified_gdf['geometry'] = simplified_gdf['geometry'].simplify(tolerance=0.01)
+    
+    # Create a simple plot with zipcode outlines for PNG (high detail)
+    print("Creating high-resolution PNG map...")
     fig, ax = plt.subplots(1, 1, figsize=(15, 10))
     
-    # Plot with very light gray outlines and no fill
     zipcode_gdf.plot(
         ax=ax,
         edgecolor='lightgray',
@@ -22,16 +27,35 @@ def create_basic_zipcode_map():
         linewidth=0.1
     )
     
-    # Set title and remove axes
     ax.set_title('US ZIP Code Boundaries', fontsize=15)
     ax.set_axis_off()
     
-    # Save the map as SVG
-    output_file = 'us_zipcodes_map.svg'
-    print(f"Saving map to {output_file}...")
-    plt.savefig(output_file, format='svg', bbox_inches='tight')
+    # Save the high-resolution PNG
+    png_output = 'us_zipcodes_map.png'
+    print(f"Saving high-resolution map to {png_output}...")
+    plt.savefig(png_output, dpi=600, bbox_inches='tight')
+    plt.close()
     
-    print("Map created successfully!")
+    # Create a simplified plot for SVG
+    print("Creating simplified SVG map...")
+    fig, ax = plt.subplots(1, 1, figsize=(15, 10))
+    
+    simplified_gdf.plot(
+        ax=ax,
+        edgecolor='lightgray',
+        facecolor='none',
+        linewidth=0.1
+    )
+    
+    ax.set_title('US ZIP Code Boundaries (Simplified)', fontsize=15)
+    ax.set_axis_off()
+    
+    # Save the simplified SVG
+    svg_output = 'us_zipcodes_map_simplified.svg'
+    print(f"Saving simplified map to {svg_output}...")
+    plt.savefig(svg_output, format='svg', bbox_inches='tight')
+    
+    print("Maps created successfully!")
 
 if __name__ == "__main__":
     create_basic_zipcode_map()
