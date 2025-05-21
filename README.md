@@ -63,3 +63,9 @@ https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-bo
 Got the ZIP code file from here.
 
 ## Python venv
+
+```
+python3 -m venv /Users/caleb/python/venv
+source /Users/caleb/python/venv/bin/activate
+python3 -m pip .....
+```
