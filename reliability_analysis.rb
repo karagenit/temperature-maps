@@ -1,13 +1,19 @@
 # First, read through 'zipcodes-normals-stations.txt' and count how many lines start with "US"
-us_count = 0
-File.foreach('zipcodes-normals-stations.txt') do |line|
-  us_count += 1 if line.start_with?('US')
-end
-puts "Number of lines starting with 'US': #{us_count}"
+require 'set'
 
-# Next, read through 'dly-tmax-normal.txt' and also count lines starting with US
-us_count_tmax = 0
-File.foreach('dly-tmax-normal.txt') do |line|
-  us_count_tmax += 1 if line.start_with?('US')
+def get_station_codes_set(input_file)
+    us_stations = Set.new
+    File.foreach(input_file) do |line|
+        if line.start_with?('US')
+            station_code = line.split[0]
+            us_stations.add(station_code)
+        end  
+    end
+    us_stations
 end
-puts "Number of lines starting with 'US' in temperature file: #{us_count_tmax}"
+
+zipcodes_stations = get_station_codes_set('zipcodes-normals-stations.txt')
+puts "Number of US stations with zip code: #{zipcodes_stations.size}"
+
+temperature_stations = get_station_codes_set('dly-tmax-normal.txt')
+puts "Number of US stations tracking temperatures: #{temperature_stations.size}"
