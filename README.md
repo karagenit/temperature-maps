@@ -51,3 +51,15 @@ AQW00061705 10      856C   856C   856C   856C   856C   857C   857C   857C   857C
 The station inventories section mentions that station IDs follow a pattern where "the first two characters denote the FIPS country code, the third character is a network code that identifies the station numbering system used." So US* stations are domestic ones we care about?
 
 US has maybe 43k zip codes (TODO verify). temp data has 90k lines (12 per station) and zip data has almost 10k. 
+
+## Geo Shapefiles
+
+Used for mapping. From the census bureau.
+
+https://www.census.gov/programs-surveys/geography/technical-documentation/naming-convention/cartographic-boundary-file.html
+
+https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.2020.html#list-tab-1883739534
+
+Got the ZIP code file from here.
+
+## Python venv
