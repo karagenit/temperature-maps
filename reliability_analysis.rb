@@ -17,3 +17,6 @@ puts "Number of US stations with zip code: #{zipcodes_stations.size}"
 
 temperature_stations = get_station_codes_set('dly-tmax-normal.txt')
 puts "Number of US stations tracking temperatures: #{temperature_stations.size}"
+
+common_stations = zipcodes_stations.intersection(temperature_stations)
+puts "Number of US stations with both zip code and temperature data: #{common_stations.size}"
