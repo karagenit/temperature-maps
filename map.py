@@ -3,8 +3,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
+from scipy.spatial import cKDTree
+import time
 
 def create_temperature_map():
+    start_time = time.time()
+    
     # Step 1: Load and process the temperature data
     print("Loading temperature data...")
     
@@ -92,47 +96,50 @@ def create_temperature_map():
     print(f"Found {len(missing_temp)} zip codes with missing temperature data")
     
     # First pass: Fill in using adjacent zip codes
+    fill_start = time.time()
     filled_count = 0
-    for idx, missing_zip in missing_temp.iterrows():
-        # Find all zip codes that touch this one
-        adjacent_zips = has_temp[has_temp.geometry.touches(missing_zip.geometry)]
-        
-        if len(adjacent_zips) > 0:
-            # If there are adjacent zip codes with temperature data, use their average
-            projected_gdf.loc[idx, 'temperature'] = adjacent_zips['temperature'].mean()
-            filled_count += 1
     
-    print(f"Filled {filled_count} zip codes using adjacent zip codes")
+    # Create a spatial index for faster adjacency checks
+    has_temp_sindex = has_temp.sindex
+    
+    for idx, missing_zip in missing_temp.iterrows():
+        # Use spatial index to find potential adjacent zip codes
+        possible_matches_idx = list(has_temp_sindex.query(missing_zip.geometry, predicate='touches'))
+        if possible_matches_idx:
+            adjacent_zips = has_temp.iloc[possible_matches_idx]
+            if not adjacent_zips.empty:
+                projected_gdf.loc[idx, 'temperature'] = adjacent_zips['temperature'].mean()
+                filled_count += 1
+    
+    print(f"Filled {filled_count} zip codes using adjacent zip codes in {time.time() - fill_start:.2f} seconds")
     
     # Update has_temp to include newly filled values
     has_temp = projected_gdf[projected_gdf['temperature'].notna()].copy()
     
-    # Second pass: For any still missing, use nearest zip code
+    # Second pass: For any still missing, use nearest zip code with KDTree (much faster)
     still_missing = projected_gdf[projected_gdf['temperature'].isna()]
     if len(still_missing) > 0:
         print(f"Finding nearest neighbors for {len(still_missing)} remaining zip codes...")
+        nn_start = time.time()
         
-        # This can be computationally intensive, so we'll use a simpler approach
-        # Calculate distances from each missing zipcode to all zipcodes with data
-        for idx, missing_zip in still_missing.iterrows():
-            # Calculate distances to all zip codes with data
-            # Use the centroid for distance calculation
-            centroid = missing_zip.geometry.centroid
-            
-            # Calculate distances to all zipcodes with temperature data
-            distances = has_temp.geometry.distance(centroid)
-            
-            # Find the index of the closest zipcode
-            closest_idx = distances.idxmin()
-            
-            # Use its temperature
-            projected_gdf.loc[idx, 'temperature'] = has_temp.loc[closest_idx, 'temperature']
-            
-            # Print progress every 1000 zipcodes
-            if (idx % 1000) == 0:
-                print(f"  Processed {idx} of {len(still_missing)} missing zipcodes")
+        # Extract centroids for all zip codes with temperature data
+        has_temp_centroids = np.array([(p.x, p.y) for p in has_temp.geometry.centroid])
         
-        print(f"Filled all remaining zip codes using nearest neighbor approach")
+        # Build KDTree for fast nearest neighbor lookup
+        tree = cKDTree(has_temp_centroids)
+        
+        # Extract centroids for all missing zip codes
+        missing_centroids = np.array([(p.x, p.y) for p in still_missing.geometry.centroid])
+        
+        # Find nearest neighbors for all missing zip codes at once
+        distances, indices = tree.query(missing_centroids, k=1)
+        
+        # Apply the temperatures from nearest neighbors
+        for i, idx in enumerate(still_missing.index):
+            nearest_idx = has_temp.index[indices[i]]
+            projected_gdf.loc[idx, 'temperature'] = has_temp.loc[nearest_idx, 'temperature']
+        
+        print(f"Filled all remaining zip codes using nearest neighbor approach in {time.time() - nn_start:.2f} seconds")
     
     # Transfer the filled temperature values back to the original GeoDataFrame
     merged_gdf['temperature'] = projected_gdf['temperature']
@@ -194,7 +201,7 @@ def create_temperature_map():
     print(f"Saving simplified temperature map to {svg_output}...")
     plt.savefig(svg_output, format='svg', bbox_inches='tight')
     
-    print("Temperature maps created successfully!")
+    print(f"Temperature maps created successfully in {time.time() - start_time:.2f} seconds!")
 
 if __name__ == "__main__":
     create_temperature_map()
