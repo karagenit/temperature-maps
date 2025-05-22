@@ -76,10 +76,71 @@ def create_temperature_map():
     
     print(f"Merged temperature data with {merged_gdf['temperature'].notna().sum()} zipcodes")
     
-    # Step 6: Create a custom colormap (blue to white to red)
+    # Step 6: Fill in missing temperature data
+    print("Filling in missing temperature data...")
+    
+    # Project the data to a coordinate system that preserves distances
+    # EPSG:3857 is Web Mercator, commonly used for web maps
+    projected_gdf = merged_gdf.copy()
+    projected_gdf = projected_gdf.to_crs(epsg=3857)
+    
+    # Make a copy with only zip codes that have temperature data
+    has_temp = projected_gdf[projected_gdf['temperature'].notna()].copy()
+    
+    # Get zip codes missing temperature data
+    missing_temp = projected_gdf[projected_gdf['temperature'].isna()].copy()
+    print(f"Found {len(missing_temp)} zip codes with missing temperature data")
+    
+    # First pass: Fill in using adjacent zip codes
+    filled_count = 0
+    for idx, missing_zip in missing_temp.iterrows():
+        # Find all zip codes that touch this one
+        adjacent_zips = has_temp[has_temp.geometry.touches(missing_zip.geometry)]
+        
+        if len(adjacent_zips) > 0:
+            # If there are adjacent zip codes with temperature data, use their average
+            projected_gdf.loc[idx, 'temperature'] = adjacent_zips['temperature'].mean()
+            filled_count += 1
+    
+    print(f"Filled {filled_count} zip codes using adjacent zip codes")
+    
+    # Update has_temp to include newly filled values
+    has_temp = projected_gdf[projected_gdf['temperature'].notna()].copy()
+    
+    # Second pass: For any still missing, use nearest zip code
+    still_missing = projected_gdf[projected_gdf['temperature'].isna()]
+    if len(still_missing) > 0:
+        print(f"Finding nearest neighbors for {len(still_missing)} remaining zip codes...")
+        
+        # This can be computationally intensive, so we'll use a simpler approach
+        # Calculate distances from each missing zipcode to all zipcodes with data
+        for idx, missing_zip in still_missing.iterrows():
+            # Calculate distances to all zip codes with data
+            # Use the centroid for distance calculation
+            centroid = missing_zip.geometry.centroid
+            
+            # Calculate distances to all zipcodes with temperature data
+            distances = has_temp.geometry.distance(centroid)
+            
+            # Find the index of the closest zipcode
+            closest_idx = distances.idxmin()
+            
+            # Use its temperature
+            projected_gdf.loc[idx, 'temperature'] = has_temp.loc[closest_idx, 'temperature']
+            
+            # Print progress every 1000 zipcodes
+            if (idx % 1000) == 0:
+                print(f"  Processed {idx} of {len(still_missing)} missing zipcodes")
+        
+        print(f"Filled all remaining zip codes using nearest neighbor approach")
+    
+    # Transfer the filled temperature values back to the original GeoDataFrame
+    merged_gdf['temperature'] = projected_gdf['temperature']
+    
+    # Step 7: Create a custom colormap (blue to white to red)
     cmap = LinearSegmentedColormap.from_list('temp_cmap', ['blue', 'white', 'red'])
     
-    # Step 7: Create the map
+    # Step 8: Create the map
     print("Creating temperature map...")
     fig, ax = plt.subplots(1, 1, figsize=(15, 10))
     
@@ -90,7 +151,6 @@ def create_temperature_map():
         linewidth=0.1,
         edgecolor='gray',
         ax=ax,
-        missing_kwds={'color': 'lightgray'},
         legend=True,
         legend_kwds={'label': 'Temperature (°F)', 'orientation': 'horizontal'}
     )
@@ -120,7 +180,6 @@ def create_temperature_map():
         linewidth=0.1,
         edgecolor='gray',
         ax=ax,
-        missing_kwds={'color': 'lightgray'},
         legend=True,
         legend_kwds={'label': 'Temperature (°F)', 'orientation': 'horizontal'}
     )
