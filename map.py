@@ -6,6 +6,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from scipy.spatial import cKDTree
 import time
 import re
+from matplotlib.colors import Normalize
 
 def calculate_comfort_score(temp_f):
     """
@@ -14,9 +15,12 @@ def calculate_comfort_score(temp_f):
     - Points decrease with distance from 72°F
     - 32°F and 92°F = 0 points
     - Higher temperatures lose points faster
+    - Temperatures below 32°F or above 92°F continue to lose points at 2 points per degree
+    - Scores can go negative
     """
     if temp_f <= 32:
-        return 0
+        # Continue losing points at 2 points per degree below 32°F
+        return 0 - (32 - temp_f) * 2
     elif temp_f <= 72:
         # Linear increase from 0 at 32°F to 40 at 72°F
         return (temp_f - 32) * 40 / 40
@@ -24,7 +28,8 @@ def calculate_comfort_score(temp_f):
         # Linear decrease from 40 at 72°F to 0 at 92°F
         return 40 - (temp_f - 72) * 40 / 20
     else:
-        return 0
+        # Continue losing points at 2 points per degree above 92°F
+        return 0 - (temp_f - 92) * 2
 
 def create_comfort_score_map():
     start_time = time.time()
@@ -176,8 +181,8 @@ def create_comfort_score_map():
     merged_gdf['comfort_score'] = projected_gdf['comfort_score']
     
     # Step 7: Create a custom colormap for comfort scores
-    # Use a viridis-like colormap from cool (low scores) to warm (high scores)
-    cmap = plt.cm.viridis
+    # Use a diverging colormap centered at 0 for positive and negative scores
+    cmap = plt.cm.RdYlGn  # Red (negative) to Yellow (neutral) to Green (positive)
     
     # Step 8: Create the map
     print("Creating comfort score map...")
@@ -186,8 +191,21 @@ def create_comfort_score_map():
     # Get score range for better color mapping
     score_min = merged_gdf['comfort_score'].min()
     score_max = merged_gdf['comfort_score'].max()
+    score_median = merged_gdf['comfort_score'].median()
     
-    # Plot zipcodes with comfort score data
+    # Calculate percentiles to exclude extreme outliers
+    score_5th = merged_gdf['comfort_score'].quantile(0.05)
+    score_95th = merged_gdf['comfort_score'].quantile(0.95)
+    
+    print(f"Score range: {score_min:.2f} to {score_max:.2f}")
+    print(f"Score median: {score_median:.2f}")
+    print(f"5th to 95th percentile: {score_5th:.2f} to {score_95th:.2f}")
+    
+    # Create a custom normalization centered around the median
+    # This will make half the data appear red and half appear green
+    norm = Normalize(vmin=score_5th, vmax=score_95th)
+    
+    # Plot zipcodes with comfort score data using the median-centered normalization
     merged_gdf.plot(
         column='comfort_score',
         cmap=cmap,
@@ -195,6 +213,7 @@ def create_comfort_score_map():
         edgecolor='gray',
         ax=ax,
         legend=True,
+        norm=norm,
         legend_kwds={'label': 'Temperature Comfort Score', 'orientation': 'horizontal'}
     )
     
@@ -217,6 +236,7 @@ def create_comfort_score_map():
     
     fig, ax = plt.subplots(1, 1, figsize=(15, 10))
     
+    # Use the same normalization for the simplified map
     simplified_gdf.plot(
         column='comfort_score',
         cmap=cmap,
@@ -224,6 +244,7 @@ def create_comfort_score_map():
         edgecolor='gray',
         ax=ax,
         legend=True,
+        norm=norm,
         legend_kwds={'label': 'Temperature Comfort Score', 'orientation': 'horizontal'}
     )
     
