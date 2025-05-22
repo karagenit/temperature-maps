@@ -5,33 +5,65 @@ import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 from scipy.spatial import cKDTree
 import time
+import re
 
-def create_temperature_map():
+def calculate_comfort_score(temp_f):
+    """
+    Calculate comfort score based on temperature:
+    - 72°F = 40 points (optimal)
+    - Points decrease with distance from 72°F
+    - 32°F and 92°F = 0 points
+    - Higher temperatures lose points faster
+    """
+    if temp_f <= 32:
+        return 0
+    elif temp_f <= 72:
+        # Linear increase from 0 at 32°F to 40 at 72°F
+        return (temp_f - 32) * 40 / 40
+    elif temp_f <= 92:
+        # Linear decrease from 40 at 72°F to 0 at 92°F
+        return 40 - (temp_f - 72) * 40 / 20
+    else:
+        return 0
+
+def create_comfort_score_map():
     start_time = time.time()
     
     # Step 1: Load and process the temperature data
     print("Loading temperature data...")
     
-    # Dictionary to store January 1st temperatures by station ID
-    station_temps = {}
+    # Dictionary to store comfort scores by station ID
+    station_scores = {}
     
     # Read the temperature data file
     with open('dly-tmax-normal.txt', 'r') as f:
         for line in f:
             parts = line.split()
+            if len(parts) < 3:
+                continue
+                
             station_id = parts[0]
             month = parts[1]
             
-            # We only care about January (month 01)
-            if month == '01':
-                # The first temperature value after the month is January 1st
-                # Format is like "875C" where 875 is 87.5°F and C is the flag
-                temp_str = parts[2]
+            # Initialize station score if not already done
+            if station_id not in station_scores:
+                station_scores[station_id] = 0
+            
+            # Process each day's temperature in the month
+            for day_idx, temp_str in enumerate(parts[2:33]):  # Skip station and month, process up to 31 days
+                # Skip invalid dates (like Feb 30)
+                if temp_str == '-8888':
+                    continue
+                
                 # Extract the numeric part and convert to float
-                temp_value = float(temp_str.rstrip('ABCDEFGHIJKLMNOPQRSTUVWXYZ')) / 10.0  # Convert from tenths to actual degrees
-                station_temps[station_id] = temp_value
+                match = re.match(r'(-?\d+)', temp_str)
+                if match:
+                    temp_value = float(match.group(1)) / 10.0  # Convert from tenths to actual degrees
+                    # Calculate and add comfort score for this day
+                    score = calculate_comfort_score(temp_value)
+                    station_scores[station_id] += score
     
-    print(f"Loaded temperatures for {len(station_temps)} stations")
+    print(f"Calculated comfort scores for {len(station_scores)} stations")
     
     # Step 2: Load the station to zipcode mapping
     print("Loading station to zipcode mapping...")
@@ -47,86 +79,85 @@ def create_temperature_map():
     
     print(f"Loaded zipcode mappings for {len(station_to_zip)} stations")
     
-    # Step 3: Create a mapping from zipcode to temperature
-    zipcode_temps = {}
+    # Step 3: Create a mapping from zipcode to comfort score
+    zipcode_scores = {}
     
-    for station_id, temp in station_temps.items():
+    for station_id, score in station_scores.items():
         if station_id in station_to_zip:
             zipcode = station_to_zip[station_id]
             # If multiple stations map to the same zipcode, take the average
-            if zipcode in zipcode_temps:
-                zipcode_temps[zipcode].append(temp)
+            if zipcode in zipcode_scores:
+                zipcode_scores[zipcode].append(score)
             else:
-                zipcode_temps[zipcode] = [temp]
+                zipcode_scores[zipcode] = [score]
     
-    # Calculate average temperature for each zipcode
-    zipcode_avg_temps = {zipcode: np.mean(temps) for zipcode, temps in zipcode_temps.items()}
+    # Calculate average score for each zipcode
+    zipcode_avg_scores = {zipcode: np.mean(scores) for zipcode, scores in zipcode_scores.items()}
     
-    print(f"Calculated temperatures for {len(zipcode_avg_temps)} zipcodes")
+    print(f"Calculated comfort scores for {len(zipcode_avg_scores)} zipcodes")
     
     # Step 4: Load the zipcode shapefile
     print("Loading zipcode shapefile...")
     zipcode_gdf = gpd.read_file('cb_2020_us_zcta520_500k/cb_2020_us_zcta520_500k.shp')
     
-    # Step 5: Join temperature data with zipcode geometries
-    # Convert the temperature dictionary to a DataFrame
-    temp_df = pd.DataFrame(list(zipcode_avg_temps.items()), columns=['ZCTA5CE20', 'temperature'])
+    # Step 5: Join score data with zipcode geometries
+    # Convert the score dictionary to a DataFrame
+    score_df = pd.DataFrame(list(zipcode_avg_scores.items()), columns=['ZCTA5CE20', 'comfort_score'])
     
     # Convert ZCTA5CE20 to string to match the shapefile
-    temp_df['ZCTA5CE20'] = temp_df['ZCTA5CE20'].astype(str)
+    score_df['ZCTA5CE20'] = score_df['ZCTA5CE20'].astype(str)
     
     # Merge with the GeoDataFrame
-    merged_gdf = zipcode_gdf.merge(temp_df, on='ZCTA5CE20', how='left')
+    merged_gdf = zipcode_gdf.merge(score_df, on='ZCTA5CE20', how='left')
     
-    print(f"Merged temperature data with {merged_gdf['temperature'].notna().sum()} zipcodes")
+    print(f"Merged comfort score data with {merged_gdf['comfort_score'].notna().sum()} zipcodes")
     
-    # Step 6: Fill in missing temperature data
-    print("Filling in missing temperature data...")
+    # Step 6: Fill in missing score data
+    print("Filling in missing comfort score data...")
     
     # Project the data to a coordinate system that preserves distances
-    # EPSG:3857 is Web Mercator, commonly used for web maps
     projected_gdf = merged_gdf.copy()
     projected_gdf = projected_gdf.to_crs(epsg=3857)
     
-    # Make a copy with only zip codes that have temperature data
-    has_temp = projected_gdf[projected_gdf['temperature'].notna()].copy()
+    # Make a copy with only zip codes that have score data
+    has_score = projected_gdf[projected_gdf['comfort_score'].notna()].copy()
     
-    # Get zip codes missing temperature data
-    missing_temp = projected_gdf[projected_gdf['temperature'].isna()].copy()
-    print(f"Found {len(missing_temp)} zip codes with missing temperature data")
+    # Get zip codes missing score data
+    missing_score = projected_gdf[projected_gdf['comfort_score'].isna()].copy()
+    print(f"Found {len(missing_score)} zip codes with missing comfort score data")
     
     # First pass: Fill in using adjacent zip codes
     fill_start = time.time()
     filled_count = 0
     
     # Create a spatial index for faster adjacency checks
-    has_temp_sindex = has_temp.sindex
+    has_score_sindex = has_score.sindex
     
-    for idx, missing_zip in missing_temp.iterrows():
+    for idx, missing_zip in missing_score.iterrows():
         # Use spatial index to find potential adjacent zip codes
-        possible_matches_idx = list(has_temp_sindex.query(missing_zip.geometry, predicate='touches'))
+        possible_matches_idx = list(has_score_sindex.query(missing_zip.geometry, predicate='touches'))
         if possible_matches_idx:
-            adjacent_zips = has_temp.iloc[possible_matches_idx]
+            adjacent_zips = has_score.iloc[possible_matches_idx]
             if not adjacent_zips.empty:
-                projected_gdf.loc[idx, 'temperature'] = adjacent_zips['temperature'].mean()
+                projected_gdf.loc[idx, 'comfort_score'] = adjacent_zips['comfort_score'].mean()
                 filled_count += 1
     
     print(f"Filled {filled_count} zip codes using adjacent zip codes in {time.time() - fill_start:.2f} seconds")
     
-    # Update has_temp to include newly filled values
-    has_temp = projected_gdf[projected_gdf['temperature'].notna()].copy()
+    # Update has_score to include newly filled values
+    has_score = projected_gdf[projected_gdf['comfort_score'].notna()].copy()
     
-    # Second pass: For any still missing, use nearest zip code with KDTree (much faster)
-    still_missing = projected_gdf[projected_gdf['temperature'].isna()]
+    # Second pass: For any still missing, use nearest zip code with KDTree
+    still_missing = projected_gdf[projected_gdf['comfort_score'].isna()]
     if len(still_missing) > 0:
         print(f"Finding nearest neighbors for {len(still_missing)} remaining zip codes...")
         nn_start = time.time()
         
-        # Extract centroids for all zip codes with temperature data
-        has_temp_centroids = np.array([(p.x, p.y) for p in has_temp.geometry.centroid])
+        # Extract centroids for all zip codes with score data
+        has_score_centroids = np.array([(p.x, p.y) for p in has_score.geometry.centroid])
         
         # Build KDTree for fast nearest neighbor lookup
-        tree = cKDTree(has_temp_centroids)
+        tree = cKDTree(has_score_centroids)
         
         # Extract centroids for all missing zip codes
         missing_centroids = np.array([(p.x, p.y) for p in still_missing.geometry.centroid])
@@ -134,81 +165,79 @@ def create_temperature_map():
         # Find nearest neighbors for all missing zip codes at once
         distances, indices = tree.query(missing_centroids, k=1)
         
-        # Apply the temperatures from nearest neighbors
+        # Apply the scores from nearest neighbors
         for i, idx in enumerate(still_missing.index):
-            nearest_idx = has_temp.index[indices[i]]
-            projected_gdf.loc[idx, 'temperature'] = has_temp.loc[nearest_idx, 'temperature']
+            nearest_idx = has_score.index[indices[i]]
+            projected_gdf.loc[idx, 'comfort_score'] = has_score.loc[nearest_idx, 'comfort_score']
         
         print(f"Filled all remaining zip codes using nearest neighbor approach in {time.time() - nn_start:.2f} seconds")
     
-    # Transfer the filled temperature values back to the original GeoDataFrame
-    merged_gdf['temperature'] = projected_gdf['temperature']
+    # Transfer the filled score values back to the original GeoDataFrame
+    merged_gdf['comfort_score'] = projected_gdf['comfort_score']
     
-    # Step 7: Create a custom colormap (blue to red without white in the middle)
-    # Create a direct blue-to-red gradient
-    cmap = LinearSegmentedColormap.from_list('temp_cmap', ['darkblue', 'blue', 'lightblue', 
-                                                          'lightcoral', 'red', 'darkred'])
+    # Step 7: Create a custom colormap for comfort scores
+    # Use a viridis-like colormap from cool (low scores) to warm (high scores)
+    cmap = plt.cm.viridis
     
     # Step 8: Create the map
-    print("Creating temperature map...")
+    print("Creating comfort score map...")
     fig, ax = plt.subplots(1, 1, figsize=(15, 10))
     
-    # Get temperature range for better color mapping
-    temp_min = merged_gdf['temperature'].min()
-    temp_max = merged_gdf['temperature'].max()
-    temp_mid = (temp_min + temp_max) / 2
+    # Get score range for better color mapping
+    score_min = merged_gdf['comfort_score'].min()
+    score_max = merged_gdf['comfort_score'].max()
     
-    # Plot zipcodes with temperature data
+    # Plot zipcodes with comfort score data
     merged_gdf.plot(
-        column='temperature',
+        column='comfort_score',
         cmap=cmap,
         linewidth=0.1,
         edgecolor='gray',
         ax=ax,
         legend=True,
-        legend_kwds={'label': 'Temperature (°F)', 'orientation': 'horizontal'}
+        legend_kwds={'label': 'Temperature Comfort Score', 'orientation': 'horizontal'}
     )
     
     # Set the boundaries to focus only on the continental US
     ax.set_xlim(-125, -66)
     ax.set_ylim(24, 50)
     
-    ax.set_title('Continental US January 1st Maximum Temperatures (°F)', fontsize=15)
+    ax.set_title('Continental US Temperature Comfort Score\n(Higher = More Days Near 72°F)', fontsize=15)
     ax.set_axis_off()
     
     # Save the map
-    output_file = 'continental_us_jan1_temperatures.png'
-    print(f"Saving temperature map to {output_file}...")
+    output_file = 'continental_us_comfort_score.png'
+    print(f"Saving comfort score map to {output_file}...")
     plt.savefig(output_file, dpi=600, bbox_inches='tight')
     
     # Create a simplified version for SVG
-    print("Creating simplified SVG temperature map...")
+    print("Creating simplified SVG comfort score map...")
     simplified_gdf = merged_gdf.copy()
     simplified_gdf['geometry'] = simplified_gdf['geometry'].simplify(tolerance=0.01, preserve_topology=True)
     
     fig, ax = plt.subplots(1, 1, figsize=(15, 10))
     
     simplified_gdf.plot(
-        column='temperature',
+        column='comfort_score',
         cmap=cmap,
         linewidth=0.1,
         edgecolor='gray',
         ax=ax,
         legend=True,
-        legend_kwds={'label': 'Temperature (°F)', 'orientation': 'horizontal'}
+        legend_kwds={'label': 'Temperature Comfort Score', 'orientation': 'horizontal'}
     )
     
     ax.set_xlim(-125, -66)
     ax.set_ylim(24, 50)
     
-    ax.set_title('Continental US January 1st Maximum Temperatures (°F)', fontsize=15)
+    ax.set_title('Continental US Temperature Comfort Score\n(Higher = More Days Near 72°F)', fontsize=15)
     ax.set_axis_off()
     
-    svg_output = 'continental_us_jan1_temperatures_simplified.svg'
-    print(f"Saving simplified temperature map to {svg_output}...")
+    svg_output = 'continental_us_comfort_score_simplified.svg'
+    print(f"Saving simplified comfort score map to {svg_output}...")
     plt.savefig(svg_output, format='svg', bbox_inches='tight')
     
-    print(f"Temperature maps created successfully in {time.time() - start_time:.2f} seconds!")
+    print(f"Comfort score maps created successfully in {time.time() - start_time:.2f} seconds!")
 
 if __name__ == "__main__":
-    create_temperature_map()
+    create_comfort_score_map()
