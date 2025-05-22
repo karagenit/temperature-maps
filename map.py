@@ -27,16 +27,16 @@ def create_basic_zipcode_map():
         linewidth=0.1
     )
     
-    # Set the boundaries to focus on the US (excluding most of the empty space)
-    # These coordinates roughly cover the continental US plus Alaska and Hawaii
-    ax.set_xlim(-180, -65)  # Longitude from Alaska to East Coast
-    ax.set_ylim(15, 75)     # Latitude from below Hawaii to above Alaska
+    # Set the boundaries to focus only on the continental US
+    # These coordinates exclude Alaska and Hawaii
+    ax.set_xlim(-125, -66)  # Longitude from West Coast to East Coast
+    ax.set_ylim(24, 50)     # Latitude from southern border to northern border
     
-    ax.set_title('US ZIP Code Boundaries', fontsize=15)
+    ax.set_title('Continental US ZIP Code Boundaries', fontsize=15)
     ax.set_axis_off()
     
     # Save the high-resolution PNG
-    png_output = 'us_zipcodes_map.png'
+    png_output = 'continental_us_zipcodes_map.png'
     print(f"Saving high-resolution map to {png_output}...")
     plt.savefig(png_output, dpi=600, bbox_inches='tight')
     plt.close()
@@ -52,15 +52,15 @@ def create_basic_zipcode_map():
         linewidth=0.1
     )
     
-    # Apply the same boundaries to the SVG map
-    ax.set_xlim(-180, -65)
-    ax.set_ylim(15, 75)
+    # Apply the same continental US boundaries to the SVG map
+    ax.set_xlim(-125, -66)
+    ax.set_ylim(24, 50)
     
-    ax.set_title('US ZIP Code Boundaries (Simplified)', fontsize=15)
+    ax.set_title('Continental US ZIP Code Boundaries (Simplified)', fontsize=15)
     ax.set_axis_off()
     
     # Save the simplified SVG
-    svg_output = 'us_zipcodes_map_simplified.svg'
+    svg_output = 'continental_us_zipcodes_map_simplified.svg'
     print(f"Saving simplified map to {svg_output}...")
     plt.savefig(svg_output, format='svg', bbox_inches='tight')
     
