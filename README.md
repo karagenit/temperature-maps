@@ -69,3 +69,16 @@ python3 -m venv /Users/caleb/python/venv
 source /Users/caleb/python/venv/bin/activate
 python3 -m pip .....
 ```
+
+## Precipitation Data
+
+echo "Files with MLY-PRCP-AVGNDS-GE050HI: $(grep -l "MLY-PRCP-AVGNDS-GE050HI" normals-monthly/*.csv | wc -l) / Total CSV files: $(ls -1 normals-monthly/*.csv | wc -l)"
+Files with MLY-PRCP-AVGNDS-GE050HI:     7484 / Total CSV files:     9839
+
+https://www.ncei.noaa.gov/access/metadata/landing-page/bin/iso?id=gov.noaa.ncdc:C00823
+
+https://noaa-normals-pds.s3.amazonaws.com/index.html#normals-monthly/1981-2010/archive/
+
+old one 404 https://www.ncei.noaa.gov/pub/data/normals/1981-2010/
+
+How does this have values like 120 days in january? It's like this is a sum over 30 years not an average, avg would be 4 days in jan?

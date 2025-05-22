@@ -32,6 +32,46 @@ def calculate_comfort_score(temp_f):
         # Continue losing points at 2 points per degree above 92°F
         # return 0 - (temp_f - 92) * 2
 
+def calculate_precipitation_score(station_id, base_dir="normals-monthly"):
+    """
+    Calculate precipitation score for a station based on number of rainy days.
+    
+    Args:
+        station_id: The ID of the weather station
+        base_dir: Directory containing the station CSV files
+        
+    Returns:
+        The precipitation score (10 points per day with ≥0.5" rainfall)
+    """
+    try:
+        # Construct the path to the station's CSV file
+        csv_path = f"{base_dir}/{station_id}.csv"
+        
+        # Load the CSV file
+        df = pd.read_csv(csv_path)
+        
+        # Check if the required column exists
+        if "MLY-PRCP-AVGNDS-GE050HI" not in df.columns:
+            # print(f"Warning: Precipitation data not found for station {station_id}")
+            return 0
+        
+        # Sum the number of rainy days across all months
+        rainy_days = df["MLY-PRCP-AVGNDS-GE050HI"].sum()
+        
+        # Calculate score (10 points per rainy day)
+        precipitation_score = rainy_days * 10 / 30 # seems like it's total days over 30 years not pure averages (e.g. it'll be 120 for january, impossible)
+        
+        return precipitation_score
+        
+    except FileNotFoundError:
+        # If the file doesn't exist, return 0 points
+        print(f"Warning: CSV file not found for station {station_id}")
+        return 0
+    except Exception as e:
+        # Handle other potential errors
+        print(f"Error processing precipitation data for station {station_id}: {e}")
+        return 0
+
 def create_comfort_score_map():
     start_time = time.time()
     
@@ -68,6 +108,14 @@ def create_comfort_score_map():
                     # Calculate and add comfort score for this day
                     score = calculate_comfort_score(temp_value)
                     station_scores[station_id] += score
+
+    # Implement precipitation score calculation here
+    print("Loading precipitation data...")
+    for station_id in station_scores:
+        # Add precipitation score to the existing temperature-based score
+        precipitation_score = calculate_precipitation_score(station_id)
+        station_scores[station_id] += precipitation_score
+
     
     print(f"Calculated comfort scores for {len(station_scores)} stations")
     
