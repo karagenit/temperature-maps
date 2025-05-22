@@ -18,18 +18,19 @@ def calculate_comfort_score(temp_f):
     - Temperatures below 32°F or above 92°F continue to lose points at 2 points per degree
     - Scores can go negative
     """
-    if temp_f <= 32:
+    # if temp_f <= 32:
         # Continue losing points at 2 points per degree below 32°F
-        return 0 - (32 - temp_f) * 2
-    elif temp_f <= 72:
+        # return 0 - (32 - temp_f) * 2
+    if temp_f <= 72:
         # Linear increase from 0 at 32°F to 40 at 72°F
         return (temp_f - 32) * 40 / 40
-    elif temp_f <= 92:
+    # elif temp_f <= 92:
+    else:
         # Linear decrease from 40 at 72°F to 0 at 92°F
         return 40 - (temp_f - 72) * 40 / 20
-    else:
+    # else:
         # Continue losing points at 2 points per degree above 92°F
-        return 0 - (temp_f - 92) * 2
+        # return 0 - (temp_f - 92) * 2
 
 def create_comfort_score_map():
     start_time = time.time()
@@ -194,8 +195,8 @@ def create_comfort_score_map():
     score_median = merged_gdf['comfort_score'].median()
     
     # Calculate percentiles to exclude extreme outliers
-    score_5th = merged_gdf['comfort_score'].quantile(0.05)
-    score_95th = merged_gdf['comfort_score'].quantile(0.95)
+    score_5th = merged_gdf['comfort_score'].quantile(0.03)
+    score_95th = merged_gdf['comfort_score'].quantile(0.98)
     
     print(f"Score range: {score_min:.2f} to {score_max:.2f}")
     print(f"Score median: {score_median:.2f}")
