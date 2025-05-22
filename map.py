@@ -144,12 +144,19 @@ def create_temperature_map():
     # Transfer the filled temperature values back to the original GeoDataFrame
     merged_gdf['temperature'] = projected_gdf['temperature']
     
-    # Step 7: Create a custom colormap (blue to white to red)
-    cmap = LinearSegmentedColormap.from_list('temp_cmap', ['blue', 'white', 'red'])
+    # Step 7: Create a custom colormap (blue to red without white in the middle)
+    # Create a direct blue-to-red gradient
+    cmap = LinearSegmentedColormap.from_list('temp_cmap', ['darkblue', 'blue', 'lightblue', 
+                                                          'lightcoral', 'red', 'darkred'])
     
     # Step 8: Create the map
     print("Creating temperature map...")
     fig, ax = plt.subplots(1, 1, figsize=(15, 10))
+    
+    # Get temperature range for better color mapping
+    temp_min = merged_gdf['temperature'].min()
+    temp_max = merged_gdf['temperature'].max()
+    temp_mid = (temp_min + temp_max) / 2
     
     # Plot zipcodes with temperature data
     merged_gdf.plot(
@@ -177,7 +184,7 @@ def create_temperature_map():
     # Create a simplified version for SVG
     print("Creating simplified SVG temperature map...")
     simplified_gdf = merged_gdf.copy()
-    simplified_gdf['geometry'] = simplified_gdf['geometry'].simplify(tolerance=0.01)
+    simplified_gdf['geometry'] = simplified_gdf['geometry'].simplify(tolerance=0.01, preserve_topology=True)
     
     fig, ax = plt.subplots(1, 1, figsize=(15, 10))
     
