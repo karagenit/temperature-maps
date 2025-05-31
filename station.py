@@ -55,7 +55,7 @@ class Station:
         # Validate that each value is between 0 and 31 inclusive
         for days in value:
             if not (0 <= days <= 31):
-                raise ValueError("Each value in avg_rainy_days_per_month must be between 0 and 31 inclusive")
+                raise ValueError(f"Each value in avg_rainy_days_per_month must be between 0 and 31 inclusive, got {days}")
                 
         self._avg_rainy_days_per_month = value
     
