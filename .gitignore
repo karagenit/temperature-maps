@@ -9,3 +9,5 @@ normals-daily/
 normals-monthly/
 *.csv
 *.pdf
+__pycache__/
+tests/__pycache__/
