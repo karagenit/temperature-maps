@@ -82,3 +82,10 @@ https://noaa-normals-pds.s3.amazonaws.com/index.html#normals-monthly/1981-2010/a
 old one 404 https://www.ncei.noaa.gov/pub/data/normals/1981-2010/
 
 How does this have values like 120 days in january? It's like this is a sum over 30 years not an average, avg would be 4 days in jan?
+
+
+## TODO
+
+Use heat index and windchill
+
+Use counties not zips. Use nearest station for each county.

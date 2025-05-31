@@ -111,10 +111,10 @@ def create_comfort_score_map():
 
     # Implement precipitation score calculation here
     print("Loading precipitation data...")
-    for station_id in station_scores:
+    # for station_id in station_scores:
         # Add precipitation score to the existing temperature-based score
-        precipitation_score = calculate_precipitation_score(station_id)
-        station_scores[station_id] += precipitation_score
+        # precipitation_score = calculate_precipitation_score(station_id)
+        # station_scores[station_id] += precipitation_score
 
     
     print(f"Calculated comfort scores for {len(station_scores)} stations")
