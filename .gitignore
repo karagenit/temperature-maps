@@ -5,3 +5,7 @@ zipcodes-normals-stations.txt
 noaa-readme.txt
 *.png
 *.svg
+normals-daily/
+normals-monthly/
+*.csv
+*.pdf
