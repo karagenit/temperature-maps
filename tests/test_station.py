@@ -12,7 +12,7 @@ class TestStation:
         station = Station()
         assert station.station_id is None
         assert station.temperature_data is None
-        assert station.avg_rainy_days_per_month is None
+        assert len(station.avg_rainy_days_per_month) == 0
     
     def test_station_properties(self):
         station = Station()
@@ -57,14 +57,14 @@ class TestStation:
         station = Station()
         station.avg_rainy_days_per_month = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4]
         # Sum of rainy days = 15
-        # 15 rainy days * 10 / 30 = 5
-        assert station.get_precipitation_score() == 5
+        # 15 rainy days * 10 = 150
+        assert station.get_precipitation_score() == 150
     
     def test_total_score(self):
         station = Station()
         station.temperature_data = 72  # Score = 40
         station.avg_rainy_days_per_month = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4]  # Score = 5
-        assert station.get_total_score() == 45
+        assert station.get_total_score() == 190
     
     def test_missing_data(self):
         station = Station()

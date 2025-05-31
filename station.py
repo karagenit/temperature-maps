@@ -2,7 +2,7 @@ class Station:
     def __init__(self):
         self._station_id = None
         self._temperature_data = None
-        self._avg_rainy_days_per_month = None
+        self._avg_rainy_days_per_month = []
     
     @property
     def station_id(self):
@@ -20,12 +20,15 @@ class Station:
     def temperature_data(self, value):
         self._temperature_data = value
     
+    # NOTE: the data files I think store the SUM of rainy days in a given month over 30 years, not the average like I expected. Need to divide those values by 30 (years) to get average value before setting this property.
     @property
     def avg_rainy_days_per_month(self):
         return self._avg_rainy_days_per_month
     
     @avg_rainy_days_per_month.setter
     def avg_rainy_days_per_month(self, value):
+        if not isinstance(value, list) or len(value) != 12:
+            raise ValueError("avg_rainy_days_per_month must be a list with exactly 12 elements (one for each month)")
         self._avg_rainy_days_per_month = value
     
     def get_temperature_score(self):
@@ -50,16 +53,17 @@ class Station:
     def get_precipitation_score(self):
         """
         Calculate precipitation score based on number of rainy days.
-        10 points per day with ≥0.5" rainfall, normalized by 30.
+        10 points per day with ≥0.5" rainfall.
         
         Uses the sum of average rainy days across all months.
         """
-        if self._avg_rainy_days_per_month is None:
+        if self._avg_rainy_days_per_month is None: # TODO check if empty array too
             return 0
             
         # Sum the average rainy days across all months
         total_rainy_days = sum(self._avg_rainy_days_per_month)
-        return total_rainy_days * 10 / 30
+        # 10 points per rainy day: a rainy day at 62 or 77 equals a sunny day at 72 because I like rain
+        return total_rainy_days * 10
     
     def get_total_score(self):
         """
