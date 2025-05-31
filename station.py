@@ -1,6 +1,9 @@
+import re
+
 class Station:
     def __init__(self):
         self._station_id = None
+        self._zipcode = None
         self._avg_daily_max_temperature = None
         self._avg_rainy_days_per_month = []
     
@@ -11,6 +14,17 @@ class Station:
     @station_id.setter
     def station_id(self, value):
         self._station_id = value
+    
+    @property
+    def zipcode(self):
+        return self._zipcode
+    
+    @zipcode.setter
+    def zipcode(self, value):
+        # Validate that zipcode is a 5-digit numeric string
+        if not value or not re.match(r'^\d{5}$', value):
+            raise ValueError("Zipcode must be a 5-digit numeric string")
+        self._zipcode = value
     
     @property
     def avg_daily_max_temperature(self):

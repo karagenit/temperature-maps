@@ -20,14 +20,19 @@ def load_stations_zipcodes():
                 
                 # Parse the line
                 parts = line.strip().split()
-                if len(parts) >= 1:
+                if len(parts) >= 2:  # We need at least station_id and zipcode
                     station_id = parts[0]
+                    zipcode = parts[1]
                     
                     # Create a new Station object if we haven't seen this station before
                     if station_id not in stations:
                         station = Station()
                         station.station_id = station_id
-                        stations[station_id] = station
+                        try:
+                            station.zipcode = zipcode
+                            stations[station_id] = station
+                        except ValueError as e:
+                            print(f"Skipping station {station_id}: {e}")
                 
     except FileNotFoundError:
         print(f"Error: File '{ZIPCODES_NORMALS_STATIONS}' not found.")
@@ -43,4 +48,4 @@ if __name__ == "__main__":
     
     # Print first few stations as a sample
     for i, (station_id, station) in enumerate(list(stations.items())[:5]):
-        print(f"Station {i+1}: {station_id}")
+        print(f"Station {i+1}: {station_id}, Zipcode: {station.zipcode}")
