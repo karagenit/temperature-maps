@@ -1,7 +1,7 @@
 class Station:
     def __init__(self):
         self._station_id = None
-        self._temperature_data = None
+        self._avg_daily_max_temperature = None
         self._avg_rainy_days_per_month = []
     
     @property
@@ -13,12 +13,20 @@ class Station:
         self._station_id = value
     
     @property
-    def temperature_data(self):
-        return self._temperature_data
+    def avg_daily_max_temperature(self):
+        return self._avg_daily_max_temperature
     
-    @temperature_data.setter
-    def temperature_data(self, value):
-        self._temperature_data = value
+    @avg_daily_max_temperature.setter
+    def avg_daily_max_temperature(self, value):
+        if not isinstance(value, list) or len(value) != 12:
+            raise ValueError("avg_daily_max_temperature must be a list with exactly 12 elements (one for each month)")
+        
+        # Validate that each month is a list of 31 elements
+        for month_data in value:
+            if not isinstance(month_data, list) or len(month_data) != 31:
+                raise ValueError("Each month in avg_daily_max_temperature must be a list with exactly 31 elements (one for each day)")
+        
+        self._avg_daily_max_temperature = value
     
     # NOTE: the data files I think store the SUM of rainy days in a given month over 30 years, not the average like I expected. Need to divide those values by 30 (years) to get average value before setting this property.
     @property
@@ -44,17 +52,33 @@ class Station:
         - Points decrease with distance from 72°F
         - 32°F and 92°F = 0 points
         - Higher temperatures lose points faster
+        
+        Processes all valid temperature data points and returns the average score.
         """
-        if self._temperature_data is None:
+        if self._avg_daily_max_temperature is None:
             return 0
-            
-        temp_f = self._temperature_data
-        if temp_f <= 72:
-            # Linear increase from 0 at 32°F to 40 at 72°F
-            return (temp_f - 32) * 40 / 40 if temp_f >= 32 else 0
-        else:
-            # Linear decrease from 40 at 72°F to 0 at 92°F
-            return 40 - (temp_f - 72) * 40 / 20 if temp_f <= 92 else 0
+        
+        total_score = 0
+        valid_days = 0
+        
+        for month_data in self._avg_daily_max_temperature:
+            for temp_f in month_data:
+                if temp_f is None:  # Skip days that don't exist (like Feb 30)
+                    continue
+                
+                valid_days += 1
+                
+                if temp_f <= 72:
+                    # Linear increase from 0 at 32°F to 40 at 72°F
+                    day_score = (temp_f - 32) * 40 / 40 if temp_f >= 32 else 0
+                else:
+                    # Linear decrease from 40 at 72°F to 0 at 92°F
+                    day_score = 40 - (temp_f - 72) * 40 / 20 if temp_f <= 92 else 0
+                
+                total_score += day_score
+        
+        # Return average score across all valid days
+        return total_score / valid_days if valid_days > 0 else 0
     
     def get_precipitation_score(self):
         """
@@ -63,7 +87,7 @@ class Station:
         
         Uses the sum of average rainy days across all months.
         """
-        if self._avg_rainy_days_per_month is None: # TODO check if empty array too
+        if not self._avg_rainy_days_per_month:
             return 0
             
         # Sum the average rainy days across all months
