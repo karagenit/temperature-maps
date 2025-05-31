@@ -32,7 +32,7 @@ def calculate_comfort_score(temp_f):
         # Continue losing points at 2 points per degree above 92°F
         # return 0 - (temp_f - 92) * 2
 
-def calculate_precipitation_score(station_id, base_dir="normals-monthly"):
+def calculate_precipitation_score(station_id, base_dir="noaa/normals-monthly"):
     """
     Calculate precipitation score for a station based on number of rainy days.
     
@@ -81,8 +81,8 @@ def create_comfort_score_map():
     # Dictionary to store comfort scores by station ID
     station_scores = {}
     
-    # Read the temperature data file
-    with open('dly-tmax-normal.txt', 'r') as f:
+    # Read the temperature data file from noaa directory
+    with open('noaa/dly-tmax-normal.txt', 'r') as f:
         for line in f:
             parts = line.split()
             if len(parts) < 3:
@@ -119,11 +119,11 @@ def create_comfort_score_map():
     
     print(f"Calculated comfort scores for {len(station_scores)} stations")
     
-    # Step 2: Load the station to zipcode mapping
+    # Step 2: Load the station to zipcode mapping from noaa directory
     print("Loading station to zipcode mapping...")
     station_to_zip = {}
     
-    with open('zipcodes-normals-stations.txt', 'r') as f:
+    with open('noaa/zipcodes-normals-stations.txt', 'r') as f:
         for line in f:
             parts = line.split()
             if len(parts) >= 2:
@@ -150,9 +150,9 @@ def create_comfort_score_map():
     
     print(f"Calculated comfort scores for {len(zipcode_avg_scores)} zipcodes")
     
-    # Step 4: Load the zipcode shapefile
+    # Step 4: Load the zipcode shapefile from census directory
     print("Loading zipcode shapefile...")
-    zipcode_gdf = gpd.read_file('cb_2020_us_zcta520_500k/cb_2020_us_zcta520_500k.shp')
+    zipcode_gdf = gpd.read_file('census/cb_2020_us_zcta520_500k/cb_2020_us_zcta520_500k.shp')
     
     # Step 5: Join score data with zipcode geometries
     # Convert the score dictionary to a DataFrame
@@ -273,8 +273,8 @@ def create_comfort_score_map():
     ax.set_title('Continental US Temperature Comfort Score\n(Higher = More Days Near 72°F)', fontsize=15)
     ax.set_axis_off()
     
-    # Save the map
-    output_file = 'continental_us_comfort_score.png'
+    # Save the map to output directory
+    output_file = 'output/continental_us_comfort_score.png'
     print(f"Saving comfort score map to {output_file}...")
     plt.savefig(output_file, dpi=600, bbox_inches='tight')
     
@@ -303,7 +303,7 @@ def create_comfort_score_map():
     ax.set_title('Continental US Temperature Comfort Score\n(Higher = More Days Near 72°F)', fontsize=15)
     ax.set_axis_off()
     
-    svg_output = 'continental_us_comfort_score_simplified.svg'
+    svg_output = 'output/continental_us_comfort_score_simplified.svg'
     print(f"Saving simplified comfort score map to {svg_output}...")
     plt.savefig(svg_output, format='svg', bbox_inches='tight')
     

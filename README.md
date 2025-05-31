@@ -89,3 +89,13 @@ How does this have values like 120 days in january? It's like this is a sum over
 Use heat index and windchill
 
 Use counties not zips. Use nearest station for each county.
+
+## May 31
+
+there's about 40k zipcodes with fairly complex shape data, makes the maps really large and not very usable.
+
+Maybe a higher DPI png that then goes through more compression could give us better image sizes? Right now they're at 11M/18M for png/svg. That's huge and is really laggy to view. But I've seen PNGs of US maps that are less than 1MB and look great so I'm not sure what I'm doing wrong here. 
+
+Instead I have a couple ideas. There's about 3 million square miles in the lower 48. A 10x10 mile square is 100 square miles, so there's about 30k of these. That would be fewer than the zipcodes, but probably look better and be MUCH better in the SVG because the shapes are way simpler. 
+
+Alternatively a county map could be nice. Looks like there's about 3k counties so this would be 10x as performant as zip code shapes. 
