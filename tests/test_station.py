@@ -24,6 +24,27 @@ class TestStation:
         assert station.temperature_data == 72
         assert station.avg_rainy_days_per_month == [3, 2, 4, 5, 6, 3, 2, 1, 3, 4, 5, 4]
     
+    def test_avg_rainy_days_validation_length(self):
+        station = Station()
+        with pytest.raises(ValueError, match="must be a list with exactly 12 elements"):
+            station.avg_rainy_days_per_month = [1, 2, 3]
+    
+    def test_avg_rainy_days_validation_min_value(self):
+        station = Station()
+        with pytest.raises(ValueError, match="must be between 0 and 31 inclusive"):
+            station.avg_rainy_days_per_month = [1, 2, -1, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    
+    def test_avg_rainy_days_validation_max_value(self):
+        station = Station()
+        with pytest.raises(ValueError, match="must be between 0 and 31 inclusive"):
+            station.avg_rainy_days_per_month = [1, 2, 32, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    
+    def test_avg_rainy_days_valid_boundary_values(self):
+        station = Station()
+        # Test with boundary values (0 and 31)
+        station.avg_rainy_days_per_month = [0, 31, 15, 20, 10, 5, 8, 12, 18, 22, 25, 30]
+        assert station.avg_rainy_days_per_month == [0, 31, 15, 20, 10, 5, 8, 12, 18, 22, 25, 30]
+    
     def test_temperature_score_optimal(self):
         station = Station()
         station.temperature_data = 72
@@ -63,7 +84,7 @@ class TestStation:
     def test_total_score(self):
         station = Station()
         station.temperature_data = 72  # Score = 40
-        station.avg_rainy_days_per_month = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4]  # Score = 5
+        station.avg_rainy_days_per_month = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4]  # Score = 150
         assert station.get_total_score() == 190
     
     def test_missing_data(self):

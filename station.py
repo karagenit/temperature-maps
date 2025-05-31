@@ -29,6 +29,12 @@ class Station:
     def avg_rainy_days_per_month(self, value):
         if not isinstance(value, list) or len(value) != 12:
             raise ValueError("avg_rainy_days_per_month must be a list with exactly 12 elements (one for each month)")
+        
+        # Validate that each value is between 0 and 31 inclusive
+        for days in value:
+            if not (0 <= days <= 31):
+                raise ValueError("Each value in avg_rainy_days_per_month must be between 0 and 31 inclusive")
+                
         self._avg_rainy_days_per_month = value
     
     def get_temperature_score(self):
