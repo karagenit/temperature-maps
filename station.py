@@ -2,7 +2,7 @@ class Station:
     def __init__(self):
         self._station_id = None
         self._temperature_data = None
-        self._precipitation_data = None
+        self._avg_rainy_days_per_month = None
     
     @property
     def station_id(self):
@@ -21,12 +21,12 @@ class Station:
         self._temperature_data = value
     
     @property
-    def precipitation_data(self):
-        return self._precipitation_data
+    def avg_rainy_days_per_month(self):
+        return self._avg_rainy_days_per_month
     
-    @precipitation_data.setter
-    def precipitation_data(self, value):
-        self._precipitation_data = value
+    @avg_rainy_days_per_month.setter
+    def avg_rainy_days_per_month(self, value):
+        self._avg_rainy_days_per_month = value
     
     def get_temperature_score(self):
         """
@@ -51,13 +51,15 @@ class Station:
         """
         Calculate precipitation score based on number of rainy days.
         10 points per day with ≥0.5" rainfall, normalized by 30.
+        
+        Uses the sum of average rainy days across all months.
         """
-        if self._precipitation_data is None:
+        if self._avg_rainy_days_per_month is None:
             return 0
             
-        # Assuming precipitation_data is the number of rainy days
-        rainy_days = self._precipitation_data
-        return rainy_days * 10 / 30
+        # Sum the average rainy days across all months
+        total_rainy_days = sum(self._avg_rainy_days_per_month)
+        return total_rainy_days * 10 / 30
     
     def get_total_score(self):
         """

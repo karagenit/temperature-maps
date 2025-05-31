@@ -99,3 +99,6 @@ Maybe a higher DPI png that then goes through more compression could give us bet
 Instead I have a couple ideas. There's about 3 million square miles in the lower 48. A 10x10 mile square is 100 square miles, so there's about 30k of these. That would be fewer than the zipcodes, but probably look better and be MUCH better in the SVG because the shapes are way simpler. 
 
 Alternatively a county map could be nice. Looks like there's about 3k counties so this would be 10x as performant as zip code shapes. 
+
+`pytest .` to run tests.
+
