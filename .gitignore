@@ -12,3 +12,4 @@ normals-monthly/
 __pycache__/
 tests/__pycache__/
 census/
+computed/

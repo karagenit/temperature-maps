@@ -2,10 +2,11 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pickle
 from shapely.geometry import LineString, MultiLineString, box, Polygon
 from shapely.ops import unary_union
 
-def create_state_boundary_map_with_grid(grid_spacing_miles=20, return_grid_cells=False):
+def create_state_boundary_map_with_grid(grid_spacing_miles=20, return_grid_cells=False, force_recalculate=False):
     """
     Create a map showing the boundaries of the continental US states
     with a grid overlay that only appears inside the US boundaries.
@@ -14,6 +15,7 @@ def create_state_boundary_map_with_grid(grid_spacing_miles=20, return_grid_cells
     Args:
         grid_spacing_miles (int): Grid spacing in miles
         return_grid_cells (bool): If True, return grid cells that intersect with the US boundary
+        force_recalculate (bool): If True, force recalculation of grid cells even if cached data exists
         
     Returns:
         tuple: (plt, grid_cells, us_boundary, projected_states) if return_grid_cells is True,
@@ -60,28 +62,50 @@ def create_state_boundary_map_with_grid(grid_spacing_miles=20, return_grid_cells
     x_grid = np.arange(minx, maxx + grid_spacing_meters, grid_spacing_meters)
     y_grid = np.arange(miny, maxy + grid_spacing_meters, grid_spacing_meters)
     
-    print("Generating grid cells within US...")
+    # Define the path for the serialized grid cells
+    os.makedirs('computed', exist_ok=True)
+    grid_cache_file = f'computed/grids_{grid_spacing_miles}_miles.bin'
     
-    # If we need to return grid cells, store them here
     grid_cells = []
     
-    # Create grid cells and lines - TODO takes a while, maybe can optimize or cache results?
-    for i in range(len(x_grid) - 1):
-        for j in range(len(y_grid) - 1):
-            # Create a grid cell
-            cell = box(x_grid[i], y_grid[j], x_grid[i+1], y_grid[j+1])
-            
-            # Check if the cell intersects with the US boundary
-            if cell.intersects(us_boundary):
-                # Get the intersection of the cell with the US boundary
-                cell_in_us = cell.intersection(us_boundary)
+    # Try to load grid cells from cache if not forcing recalculation
+    if not force_recalculate and os.path.exists(grid_cache_file):
+        print(f"Loading grid cells from cache: {grid_cache_file}")
+        try:
+            with open(grid_cache_file, 'rb') as f:
+                cached_data = pickle.load(f)
+                grid_cells = cached_data['grid_cells']
+                print(f"Successfully loaded {len(grid_cells)} grid cells from cache")
+        except Exception as e:
+            print(f"Error loading from cache: {e}")
+            print("Will recalculate grid cells")
+            grid_cells = []
+    
+    # If grid cells weren't loaded from cache, calculate them
+    if not grid_cells:
+        print("Generating grid cells within US...")
+        
+        # Create grid cells and lines
+        for i in range(len(x_grid) - 1):
+            for j in range(len(y_grid) - 1):
+                # Create a grid cell
+                cell = box(x_grid[i], y_grid[j], x_grid[i+1], y_grid[j+1])
                 
-                # Skip if the intersection is too small
-                if cell_in_us.area < 0.1 * cell.area:
-                    continue
-                
-                if return_grid_cells:
+                # Check if the cell intersects with the US boundary
+                if cell.intersects(us_boundary):
+                    # Get the intersection of the cell with the US boundary
+                    cell_in_us = cell.intersection(us_boundary)
+                    
+                    # Skip if the intersection is too small
+                    if cell_in_us.area < 0.1 * cell.area:
+                        continue
+                    
                     grid_cells.append(cell_in_us)
+        
+        # Save the grid cells to cache
+        print(f"Saving {len(grid_cells)} grid cells to cache: {grid_cache_file}")
+        with open(grid_cache_file, 'wb') as f:
+            pickle.dump({'grid_cells': grid_cells}, f)
 
     print("Generating and clipping X-grid lines to US boundary...")
     
@@ -123,7 +147,11 @@ def create_state_boundary_map_with_grid(grid_spacing_miles=20, return_grid_cells
         return plt
 
 if __name__ == "__main__":
-    plt = create_state_boundary_map_with_grid()
+    # Add an optional command-line argument to force recalculation
+    import sys
+    force_recalc = '--force-recalc' in sys.argv
+    
+    plt = create_state_boundary_map_with_grid(force_recalculate=force_recalc)
 
     # Ensure output directory exists
     os.makedirs('output', exist_ok=True)
