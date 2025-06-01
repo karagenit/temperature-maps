@@ -6,6 +6,8 @@ class Station:
         self._zipcode = None
         self._avg_daily_max_temperature = None
         self._avg_rainy_days_per_month = []
+        self._latitude = None
+        self._longitude = None
     
     @property
     def station_id(self):
@@ -25,6 +27,36 @@ class Station:
         if not value or not re.match(r'^\d{5}$', value):
             raise ValueError("Zipcode must be a 5-digit numeric string")
         self._zipcode = value
+    
+    @property
+    def latitude(self):
+        return self._latitude
+    
+    @latitude.setter
+    def latitude(self, value):
+        # Validate latitude is a float between -90 and 90
+        try:
+            lat = float(value)
+            if not -90 <= lat <= 90:
+                raise ValueError(f"Latitude must be between -90 and 90, got {lat}")
+            self._latitude = lat
+        except (TypeError, ValueError):
+            raise ValueError(f"Latitude must be a valid number, got {value}")
+    
+    @property
+    def longitude(self):
+        return self._longitude
+    
+    @longitude.setter
+    def longitude(self, value):
+        # Validate longitude is a float between -180 and 180
+        try:
+            lon = float(value)
+            if not -180 <= lon <= 180:
+                raise ValueError(f"Longitude must be between -180 and 180, got {lon}")
+            self._longitude = lon
+        except (TypeError, ValueError):
+            raise ValueError(f"Longitude must be a valid number, got {value}")
     
     @property
     def avg_daily_max_temperature(self):

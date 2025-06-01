@@ -45,9 +45,9 @@ def create_state_boundary_map_with_grid():
         ax=ax
     )
     
-    # Create a 40-mile grid overlay
-    # Convert 40 miles to meters (1 mile = 1609.34 meters)
-    grid_spacing_meters = 40 * 1609.34
+    # Create a 20-mile grid overlay
+    # Convert 20 miles to meters (1 mile = 1609.34 meters)
+    grid_spacing_meters = 20 * 1609.34
     
     # Create grid lines
     x_grid = np.arange(minx, maxx + grid_spacing_meters, grid_spacing_meters)

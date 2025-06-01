@@ -43,13 +43,12 @@ def load_stations_monthly_precip():
                 reader = csv.DictReader(csvfile)
                 
                 for row in reader:
-                    # Check if the precipitation column exists
-                    if 'MLY-PRCP-AVGNDS-GE050HI' in row:
-                        # Get the month (1-based in the CSV, convert to 0-based for our array)
-                        try:
-                            month = int(row['DATE']) - 1  # DATE column contains the month number
-                            
-                            # Get the precipitation value
+                    # Get the month (1-based in the CSV, convert to 0-based for our array)
+                    try:
+                        month = int(row['DATE']) - 1  # DATE column contains the month number
+                        
+                        # Get the precipitation value
+                        if 'MLY-PRCP-AVGNDS-GE050HI' in row:
                             precip_value = row['MLY-PRCP-AVGNDS-GE050HI']
                             
                             # Convert to float if it's a valid number
@@ -57,9 +56,25 @@ def load_stations_monthly_precip():
                             if precip_value and precip_value != 'S' and precip_value != 'P':
                                 # The data is the sum over 30 years, so divide by 30 to get the average
                                 precip_data[month] = float(precip_value) / 30.0
-                        except (ValueError, IndexError):
-                            # Skip rows with invalid data
-                            continue
+                        
+                        # Get latitude and longitude (only need to set once)
+                        if month == 0:  # Only process for the first month to avoid redundancy
+                            if 'LATITUDE' in row and not station.latitude:
+                                try:
+                                    station.latitude = row['LATITUDE']
+                                except ValueError:
+                                    # Skip invalid latitude
+                                    pass
+                                
+                            if 'LONGITUDE' in row and not station.longitude:
+                                try:
+                                    station.longitude = row['LONGITUDE']
+                                except ValueError:
+                                    # Skip invalid longitude
+                                    pass
+                    except (ValueError, IndexError):
+                        # Skip rows with invalid data
+                        continue
             
             # Set the precipitation data on the station. If any values are invalid or None this will throw exception, so just skip that station
             try:
@@ -85,6 +100,9 @@ if __name__ == "__main__":
         sample_station_id = next(iter(precip_stations))
         sample_station = precip_stations[sample_station_id]
         print(f"Sample data for station {sample_station_id}:")
+        
+        # Print location data
+        print(f"  Location: {sample_station.latitude}, {sample_station.longitude}")
         
         # Print monthly precipitation data
         print("Monthly precipitation data (average days with ≥0.5\" rainfall):")
