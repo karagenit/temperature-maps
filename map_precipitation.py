@@ -37,6 +37,7 @@ def create_precipitation_map(grid_spacing_miles=20):
     # Calculate precipitation scores for each grid cell
     print("Calculating precipitation scores for each grid cell...")
     grid_cell_scores = []
+    cells_without_stations = []
     
     # Pre-compute all station points in the projected coordinate system
     # Store as tuples of (station_id, station, point) sorted by X coordinate
@@ -92,10 +93,13 @@ def create_precipitation_map(grid_spacing_miles=20):
         if stations_in_cell:
             avg_precip_score = sum(station.get_precipitation_score() for station in stations_in_cell) / len(stations_in_cell)
             grid_cell_scores.append((cell, avg_precip_score))
+        else:
+            cells_without_stations.append(cell)
     
     # Print newline after completion
     print()    
     print(f"Found {len(grid_cell_scores)} grid cells with precipitation data")
+    print(f"{len(cells_without_stations)}/{len(grid_cells)} cells are missing precipitation data")
     
     # Find the range of precipitation scores
     if grid_cell_scores:
@@ -103,12 +107,22 @@ def create_precipitation_map(grid_spacing_miles=20):
         max_score = max(score for _, score in grid_cell_scores)
         print(f"Precipitation score range: {min_score:.2f} to {max_score:.2f}")
         
-        # Create a custom colormap: blue for high precipitation, yellow for low
-        colors = [(1, 1, 0.7), (0.7, 0.9, 1), (0, 0.5, 1)]  # Yellow to light blue to dark blue
+        # Create a custom colormap: white for no precipitation, dark blue for high
+        colors = [(1, 1, 1), (0.7, 0.9, 1), (0, 0.3, 0.8)]  # White to light blue to dark blue
         cmap = LinearSegmentedColormap.from_list('precipitation_cmap', colors)
         
         # Get the current axes
         ax = plt.gca()
+        
+        # First, plot cells without stations in light red
+        for cell in cells_without_stations:
+            if isinstance(cell, Polygon):
+                x, y = cell.exterior.xy
+                ax.fill(x, y, color=(1, 0.8, 0.8), alpha=0.7, edgecolor='none')  # Light red
+            else:  # MultiPolygon
+                for polygon in cell.geoms:
+                    x, y = polygon.exterior.xy
+                    ax.fill(x, y, color=(1, 0.8, 0.8), alpha=0.7, edgecolor='none')  # Light red
         
         # Plot grid cells with colors based on precipitation scores
         for cell, score in grid_cell_scores:
@@ -131,11 +145,18 @@ def create_precipitation_map(grid_spacing_miles=20):
             ax=ax
         )
         
-        # Create a colorbar
+        # Create a colorbar for precipitation data
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(min_score, max_score))
         sm.set_array([])
         cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.05, shrink=0.8)
         cbar.set_label('Precipitation Score (higher = more rainy days)')
+        
+        # Add a legend for cells without data
+        from matplotlib.patches import Patch
+        legend_elements = [
+            Patch(facecolor=(1, 0.8, 0.8), alpha=0.7, label='No Station Data')
+        ]
+        ax.legend(handles=legend_elements, loc='lower right')
     
     ax.set_title(f'Continental US Precipitation Map ({grid_spacing_miles}-Mile Grid)', fontsize=15)
     
