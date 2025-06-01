@@ -41,32 +41,35 @@ def create_precipitation_map(grid_spacing_miles=20):
     # Create a copy of the stations dictionary to modify
     remaining_stations = stations.copy()
     
-    # Print initial message
-    print("\rCalculating precipitation scores: 0/{} cells".format(len(grid_cells)), end='')
+    # Pre-compute all station points in the projected coordinate system
+    station_points = {}
+    for station_id, station in remaining_stations.items():
+        if station.latitude is not None and station.longitude is not None:
+            # Transform station coordinates to the projected CRS
+            station_x, station_y = transformer.transform(station.longitude, station.latitude)
+            station_points[station_id] = Point(station_x, station_y)
+    
+    print(f"\nPre-computed coordinates for {len(station_points)} stations")
     
     for i, cell in enumerate(grid_cells, 1):
         # Update progress
-        print("\rCalculating precipitation scores: {}/{} cells".format(i, len(grid_cells)), end='')
+        print(f"\rCalculating precipitation scores: {i}/{len(grid_cells)} cells", end='')
         
         # Find stations within this grid cell
         stations_in_cell = []
         # Use a list to track station IDs to remove
         stations_to_remove = []
         
-        for station_id, station in remaining_stations.items():
-            if station.latitude is not None and station.longitude is not None:
-                # Transform station coordinates to the projected CRS
-                station_x, station_y = transformer.transform(station.longitude, station.latitude)
-                station_point = Point(station_x, station_y)
-                
-                # Check if the station is within the cell
-                if cell.contains(station_point):
-                    stations_in_cell.append(station)
-                    stations_to_remove.append(station_id)
+        for station_id in list(station_points.keys()):
+            # Check if the station is within the cell
+            if cell.contains(station_points[station_id]):
+                stations_in_cell.append(remaining_stations[station_id])
+                stations_to_remove.append(station_id)
         
         # Remove stations that have been assigned to this cell
         for station_id in stations_to_remove:
             del remaining_stations[station_id]
+            del station_points[station_id]
         
         # Calculate average precipitation score if there are stations in the cell
         if stations_in_cell:
