@@ -4,6 +4,8 @@ from station import Station
 
 MONTHLY_PRECIP_DIR = 'noaa/normals-monthly/'
 
+# TODO would also like to count snowfall days at some point and count those as precipitation
+# TODO also might be better to use 0.1" cutoff for rainy days instead.
 def load_stations_monthly_precip():
     """
     Load monthly precipitation data from CSV files in the normals-monthly directory.

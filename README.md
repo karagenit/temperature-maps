@@ -103,3 +103,5 @@ Alternatively a county map could be nice. Looks like there's about 3k counties s
 `pytest .` to run tests.
 
 NOAA dataset MCP to describe the data files available and how to use them?
+
+dly-tmax-normal has 90012 lines. Which is 7501 stations (I think). normals-daily has 9840 files, so more stations. Maybe I should be using that data instead? Although that's actually just precipitation data in those files. But maybe I could download something similar for temp data? The massive .txt temp data is old stuff I downloaded a year ago but that file isn't available anymore. Maybe I can get something in the same format as precip data but for temps (ie. one CSV per station). 
