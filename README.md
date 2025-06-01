@@ -105,3 +105,7 @@ Alternatively a county map could be nice. Looks like there's about 3k counties s
 NOAA dataset MCP to describe the data files available and how to use them?
 
 dly-tmax-normal has 90012 lines. Which is 7501 stations (I think). normals-daily has 9840 files, so more stations. Maybe I should be using that data instead? Although that's actually just precipitation data in those files. But maybe I could download something similar for temp data? The massive .txt temp data is old stuff I downloaded a year ago but that file isn't available anymore. Maybe I can get something in the same format as precip data but for temps (ie. one CSV per station). 
+
+## June 1
+
+I think I'll go the route of artificially generated grid rather than based on counties, since counties tend to be fairly unevenly distributed especially more dense on the east coast. Indiana is 160 miles across (about). I feel like even a 40x40 mile grid would be acceptable. 3 million / 1600 = only 1875 elements, so probably a lot better. And I bet *almost* all of these will have a station in them, so minimal nearest-neighbor estimation is required. 

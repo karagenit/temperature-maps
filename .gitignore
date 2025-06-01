@@ -11,3 +11,4 @@ normals-monthly/
 *.pdf
 __pycache__/
 tests/__pycache__/
+census/
