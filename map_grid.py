@@ -60,12 +60,12 @@ def create_state_boundary_map_with_grid(grid_spacing_miles=20, return_grid_cells
     x_grid = np.arange(minx, maxx + grid_spacing_meters, grid_spacing_meters)
     y_grid = np.arange(miny, maxy + grid_spacing_meters, grid_spacing_meters)
     
-    print("Generating and clipping grid lines to US boundary...")
+    print("Generating grid cells within US...")
     
     # If we need to return grid cells, store them here
     grid_cells = []
     
-    # Create grid cells and lines
+    # Create grid cells and lines - TODO takes a while, maybe can optimize or cache results?
     for i in range(len(x_grid) - 1):
         for j in range(len(y_grid) - 1):
             # Create a grid cell
@@ -82,6 +82,8 @@ def create_state_boundary_map_with_grid(grid_spacing_miles=20, return_grid_cells
                 
                 if return_grid_cells:
                     grid_cells.append(cell_in_us)
+
+    print("Generating and clipping X-grid lines to US boundary...")
     
     # Draw grid lines
     for x in x_grid:
@@ -96,6 +98,8 @@ def create_state_boundary_map_with_grid(grid_spacing_miles=20, return_grid_cells
             elif isinstance(clipped_line, MultiLineString):
                 for segment in clipped_line.geoms:
                     ax.plot(*segment.xy, color='grey', linestyle='-', linewidth=0.5, alpha=0.7)
+    
+    print("Generating and clipping Y-grid lines to US boundary...")
     
     for y in y_grid:
         line = LineString([(minx, y), (maxx, y)])
