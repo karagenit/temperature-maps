@@ -83,9 +83,14 @@ def create_state_boundary_map_with_grid():
                 for segment in clipped_line.geoms:
                     ax.plot(*segment.xy, color='grey', linestyle='-', linewidth=0.5, alpha=0.7)
     
-    ax.set_title('Continental US State Boundaries with 40-Mile Grid', fontsize=15)
+    ax.set_title('Continental US State Boundaries with 20-Mile Grid', fontsize=15)
     ax.set_axis_off()
-    
+
+    return plt
+
+if __name__ == "__main__":
+    plt = create_state_boundary_map_with_grid()
+
     # Ensure output directory exists
     os.makedirs('output', exist_ok=True)
     
@@ -93,8 +98,4 @@ def create_state_boundary_map_with_grid():
     output_file = 'output/map_grid.png'
     print(f"Saving grid map to {output_file}...")
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    
     print("Grid map created successfully!")
-
-if __name__ == "__main__":
-    create_state_boundary_map_with_grid()
