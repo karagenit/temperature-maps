@@ -2,14 +2,22 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-from shapely.geometry import LineString, MultiLineString, box
+from shapely.geometry import LineString, MultiLineString, box, Polygon
 from shapely.ops import unary_union
 
-def create_state_boundary_map_with_grid():
+def create_state_boundary_map_with_grid(grid_spacing_miles=20, return_grid_cells=False):
     """
     Create a map showing the boundaries of the continental US states
-    with a 40-mile grid overlay that only appears inside the US boundaries.
+    with a grid overlay that only appears inside the US boundaries.
     Uses an equal-area projection to ensure grid cells are square.
+    
+    Args:
+        grid_spacing_miles (int): Grid spacing in miles
+        return_grid_cells (bool): If True, return grid cells that intersect with the US boundary
+        
+    Returns:
+        tuple: (plt, grid_cells, us_boundary, projected_states) if return_grid_cells is True,
+               otherwise just plt
     """
     print("Loading state shapefile...")
     
@@ -45,17 +53,37 @@ def create_state_boundary_map_with_grid():
         ax=ax
     )
     
-    # Create a 20-mile grid overlay
-    # Convert 20 miles to meters (1 mile = 1609.34 meters)
-    grid_spacing_meters = 20 * 1609.34
+    # Convert miles to meters (1 mile = 1609.34 meters)
+    grid_spacing_meters = grid_spacing_miles * 1609.34
     
-    # Create grid lines
+    # Create grid coordinates
     x_grid = np.arange(minx, maxx + grid_spacing_meters, grid_spacing_meters)
     y_grid = np.arange(miny, maxy + grid_spacing_meters, grid_spacing_meters)
     
     print("Generating and clipping grid lines to US boundary...")
     
-    # Create vertical grid lines and clip them to the US boundary
+    # If we need to return grid cells, store them here
+    grid_cells = []
+    
+    # Create grid cells and lines
+    for i in range(len(x_grid) - 1):
+        for j in range(len(y_grid) - 1):
+            # Create a grid cell
+            cell = box(x_grid[i], y_grid[j], x_grid[i+1], y_grid[j+1])
+            
+            # Check if the cell intersects with the US boundary
+            if cell.intersects(us_boundary):
+                # Get the intersection of the cell with the US boundary
+                cell_in_us = cell.intersection(us_boundary)
+                
+                # Skip if the intersection is too small
+                if cell_in_us.area < 0.1 * cell.area:
+                    continue
+                
+                if return_grid_cells:
+                    grid_cells.append(cell_in_us)
+    
+    # Draw grid lines
     for x in x_grid:
         line = LineString([(x, miny), (x, maxy)])
         # Clip the line to the US boundary
@@ -69,7 +97,6 @@ def create_state_boundary_map_with_grid():
                 for segment in clipped_line.geoms:
                     ax.plot(*segment.xy, color='grey', linestyle='-', linewidth=0.5, alpha=0.7)
     
-    # Create horizontal grid lines and clip them to the US boundary
     for y in y_grid:
         line = LineString([(minx, y), (maxx, y)])
         # Clip the line to the US boundary
@@ -83,10 +110,13 @@ def create_state_boundary_map_with_grid():
                 for segment in clipped_line.geoms:
                     ax.plot(*segment.xy, color='grey', linestyle='-', linewidth=0.5, alpha=0.7)
     
-    ax.set_title('Continental US State Boundaries with 20-Mile Grid', fontsize=15)
+    ax.set_title(f'Continental US State Boundaries with {grid_spacing_miles}-Mile Grid', fontsize=15)
     ax.set_axis_off()
 
-    return plt
+    if return_grid_cells:
+        return plt, grid_cells, us_boundary, projected_states
+    else:
+        return plt
 
 if __name__ == "__main__":
     plt = create_state_boundary_map_with_grid()
