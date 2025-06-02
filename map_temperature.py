@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from shapely.geometry import Point, Polygon
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import ListedColormap
 from load_stations import load_stations
 from map_grid import create_state_boundary_map_with_grid
 from pyproj import Transformer
@@ -125,28 +125,47 @@ def create_temperature_map(grid_spacing_miles=20):
         actual_min = min(all_scores)
         actual_max = max(all_scores)
         
-        # Calculate 5th and 95th percentiles for better color distribution
-        min_score = np.percentile(all_scores, 5)
-        max_score = np.percentile(all_scores, 95)
+        # Calculate 2nd and 98th percentiles for better color distribution
+        min_score = np.percentile(all_scores, 2)
+        max_score = np.percentile(all_scores, 98)
         
         print(f"Actual temperature score range: {actual_min:.2f} to {actual_max:.2f}")
-        print(f"Using color scale range (5th-95th percentile): {min_score:.2f} to {max_score:.2f}")
+        print(f"Using color scale range (2nd-98th percentile): {min_score:.2f} to {max_score:.2f}")
         
-        # Create a custom colormap: red for low scores (uncomfortable), green for high scores (comfortable)
-        colors = [(0.8, 0, 0), (1, 0.8, 0), (0, 0.8, 0)]  # Red to yellow to green
-        cmap = LinearSegmentedColormap.from_list('temperature_cmap', colors)
+        # Create a list of 7 distinct colors from red to yellow to green
+        distinct_colors = [
+            (0.8, 0, 0),      # Dark red
+            (1.0, 0.2, 0.2),  # Red
+            (1.0, 0.5, 0),    # Orange
+            (1.0, 1.0, 0),    # Yellow
+            (0.7, 1.0, 0),    # Yellow-green
+            (0.4, 0.8, 0),    # Light green
+            (0, 0.6, 0)       # Green
+        ]
+        
+        # Create a discrete colormap with 7 colors
+        cmap = ListedColormap(distinct_colors)
         
         # Get the current axes
         ax = plt.gca()
+        
+        # Calculate the bin edges for the 7 categories
+        score_range = max_score - min_score
+        bin_edges = [min_score + (i * score_range / 7) for i in range(8)]
         
         # Plot grid cells with colors based on temperature scores
         for cell, score in grid_cell_scores:
             # Clip the score to the percentile range
             clipped_score = max(min_score, min(score, max_score))
             
-            # Normalize the score between 0 and 1
-            normalized_score = (clipped_score - min_score) / (max_score - min_score) if max_score > min_score else 0.5
-            color = cmap(normalized_score)
+            # Determine which bin the score falls into
+            bin_index = 0
+            for i in range(7):
+                if clipped_score >= bin_edges[i] and clipped_score <= bin_edges[i+1]:
+                    bin_index = i
+                    break
+            
+            color = distinct_colors[bin_index]
             
             if isinstance(cell, Polygon):
                 x, y = cell.exterior.xy
@@ -166,7 +185,7 @@ def create_temperature_map(grid_spacing_miles=20):
         # Create a colorbar for temperature data
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(min_score, max_score))
         sm.set_array([])
-        cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.05, shrink=0.8)
+        cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.05, shrink=0.8, ticks=[(bin_edges[i] + bin_edges[i+1])/2 for i in range(7)])
         cbar.set_label('Temperature Comfort Score (higher = more comfortable)')
     
     ax.set_title(f'Continental US Temperature Comfort Map ({grid_spacing_miles}-Mile Grid)', fontsize=15)
