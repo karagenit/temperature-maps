@@ -103,9 +103,19 @@ def create_precipitation_map(grid_spacing_miles=20):
     
     # Find the range of precipitation scores
     if grid_cell_scores:
-        min_score = min(score for _, score in grid_cell_scores)
-        max_score = max(score for _, score in grid_cell_scores)
-        print(f"Precipitation score range: {min_score:.2f} to {max_score:.2f}")
+        # Get all scores
+        all_scores = [score for _, score in grid_cell_scores]
+        
+        # Calculate the actual min and max for reference
+        actual_min = min(all_scores)
+        actual_max = max(all_scores)
+        
+        # Calculate 5th and 95th percentiles for better color distribution
+        min_score = np.percentile(all_scores, 5)
+        max_score = np.percentile(all_scores, 95)
+        
+        print(f"Actual precipitation score range: {actual_min:.2f} to {actual_max:.2f}")
+        print(f"Using color scale range (5th-95th percentile): {min_score:.2f} to {max_score:.2f}")
         
         # Create a custom colormap: white for no precipitation, dark blue for high
         colors = [(1, 1, 1), (0.7, 0.9, 1), (0, 0.3, 0.8)]  # White to light blue to dark blue
@@ -126,8 +136,11 @@ def create_precipitation_map(grid_spacing_miles=20):
         
         # Plot grid cells with colors based on precipitation scores
         for cell, score in grid_cell_scores:
+            # Clip the score to the percentile range
+            clipped_score = max(min_score, min(score, max_score))
+            
             # Normalize the score between 0 and 1
-            normalized_score = (score - min_score) / (max_score - min_score) if max_score > min_score else 0.5
+            normalized_score = (clipped_score - min_score) / (max_score - min_score) if max_score > min_score else 0.5
             color = cmap(normalized_score)
             
             if isinstance(cell, Polygon):
@@ -163,7 +176,7 @@ def create_precipitation_map(grid_spacing_miles=20):
     return plt
 
 if __name__ == "__main__":
-    plt = create_precipitation_map()
+    plt = create_precipitation_map(grid_spacing_miles=20)
     
     # Ensure output directory exists
     os.makedirs('output', exist_ok=True)
