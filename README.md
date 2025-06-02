@@ -111,3 +111,7 @@ dly-tmax-normal has 90012 lines. Which is 7501 stations (I think). normals-daily
 I think I'll go the route of artificially generated grid rather than based on counties, since counties tend to be fairly unevenly distributed especially more dense on the east coast. Indiana is 160 miles across (about). I feel like even a 40x40 mile grid would be acceptable. 3 million / 1600 = only 1875 elements, so probably a lot better. And I bet *almost* all of these will have a station in them, so minimal nearest-neighbor estimation is required. 
 
 Improving finding stations within a cell: naive took minutes. Removing stations we've already found was a little better. Sorting stations by X coordinate was much better. KD tree was the best.
+
+Temporary:
+
+I've copied map_precipitation.py into map_temperature.py. Let's adjust the implementation slightly to show temperature scores, which come from station.py and get_temperature_score which gives an ideal score for 72F and lower scores for higher/lower temperatures. 

@@ -165,7 +165,7 @@ def create_precipitation_map(grid_spacing_miles=20):
     return plt
 
 if __name__ == "__main__":
-    plt = create_precipitation_map(grid_spacing_miles=20)
+    plt = create_precipitation_map(grid_spacing_miles=10)
     
     # Ensure output directory exists
     os.makedirs('output', exist_ok=True)
