@@ -59,7 +59,8 @@ def create_precipitation_map(grid_spacing_miles=20):
     # Calculate precipitation scores for each grid cell
     print("Calculating precipitation scores for each grid cell...")
     grid_cell_scores = []
-    cells_without_stations = []
+    cells_with_assigned_stations = 0
+    cells_with_nearest_stations = 0
     
     # Convert grid spacing from miles to meters (for the projected CRS)
     # Assuming 1 mile = 1609.34 meters
@@ -91,13 +92,20 @@ def create_precipitation_map(grid_spacing_miles=20):
         if stations_in_cell:
             avg_precip_score = sum(station.get_precipitation_score() for station in stations_in_cell) / len(stations_in_cell)
             grid_cell_scores.append((cell, avg_precip_score))
+            cells_with_assigned_stations += 1
         else:
-            cells_without_stations.append(cell)
+            # Find the closest station to this cell's center
+            distance, idx = kdtree.query([cell_center_x, cell_center_y], k=1)
+            closest_station = station_data[idx][1]  # Get the station object
+            precip_score = closest_station.get_precipitation_score()
+            grid_cell_scores.append((cell, precip_score))
+            cells_with_nearest_stations += 1
     
     # Print newline after completion
     print()    
-    print(f"Found {len(grid_cell_scores)} grid cells with precipitation data")
-    print(f"{len(cells_without_stations)}/{len(grid_cells)} cells are missing precipitation data")
+    print(f"Found {cells_with_assigned_stations} grid cells with stations inside")
+    print(f"Assigned {cells_with_nearest_stations} grid cells to their nearest station")
+    print(f"All {len(grid_cells)} cells now have precipitation data")
     
     # Find the range of precipitation scores
     if grid_cell_scores:
@@ -121,16 +129,6 @@ def create_precipitation_map(grid_spacing_miles=20):
         
         # Get the current axes
         ax = plt.gca()
-        
-        # First, plot cells without stations in light red
-        for cell in cells_without_stations:
-            if isinstance(cell, Polygon):
-                x, y = cell.exterior.xy
-                ax.fill(x, y, color=(1, 0.8, 0.8), alpha=0.7, edgecolor='none')  # Light red
-            else:  # MultiPolygon
-                for polygon in cell.geoms:
-                    x, y = polygon.exterior.xy
-                    ax.fill(x, y, color=(1, 0.8, 0.8), alpha=0.7, edgecolor='none')  # Light red
         
         # Plot grid cells with colors based on precipitation scores
         for cell, score in grid_cell_scores:
@@ -161,13 +159,6 @@ def create_precipitation_map(grid_spacing_miles=20):
         sm.set_array([])
         cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.05, shrink=0.8)
         cbar.set_label('Precipitation Score (higher = more rainy days)')
-        
-        # Add a legend for cells without data
-        from matplotlib.patches import Patch
-        legend_elements = [
-            Patch(facecolor=(1, 0.8, 0.8), alpha=0.7, label='No Station Data')
-        ]
-        ax.legend(handles=legend_elements, loc='lower right')
     
     ax.set_title(f'Continental US Precipitation Map ({grid_spacing_miles}-Mile Grid)', fontsize=15)
     
