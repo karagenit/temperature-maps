@@ -112,6 +112,3 @@ I think I'll go the route of artificially generated grid rather than based on co
 
 Improving finding stations within a cell: naive took minutes. Removing stations we've already found was a little better. Sorting stations by X coordinate was much better. KD tree was the best.
 
-Temporary:
-
-I've copied map_precipitation.py into map_temperature.py. Let's adjust the implementation slightly to show temperature scores, which come from station.py and get_temperature_score which gives an ideal score for 72F and lower scores for higher/lower temperatures. 

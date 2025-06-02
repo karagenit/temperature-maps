@@ -101,6 +101,11 @@ class Station:
         
         Processes all valid temperature data points and returns the average score.
         """
+        ideal_temp = 72
+        max_points = 40
+        cold_points_loss = 1
+        hot_points_loss = 2
+
         if self._avg_daily_max_temperature is None:
             return 0
         
@@ -114,12 +119,16 @@ class Station:
                 
                 valid_days += 1
                 
-                if temp_f <= 72:
+                if temp_f <= ideal_temp:
                     # Linear increase from 0 at 32°F to 40 at 72°F
-                    day_score = (temp_f - 32) * 40 / 40 if temp_f >= 32 else 0
+                    # day_score = (temp_f - 32) * 40 / 40 if temp_f >= 32 else 0
+                    temp_difference = ideal_temp - temp_f
+                    day_score = max_points - (temp_difference * cold_points_loss)
                 else:
                     # Linear decrease from 40 at 72°F to 0 at 92°F
-                    day_score = 40 - (temp_f - 72) * 40 / 20 if temp_f <= 92 else 0
+                    # day_score = 40 - (temp_f - 72) * 40 / 20 if temp_f <= 92 else 0
+                    temp_difference = temp_f - ideal_temp
+                    day_score = max_points - (temp_difference * hot_points_loss)
                 
                 total_score += day_score
         
