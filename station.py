@@ -148,7 +148,7 @@ class Station:
         # Sum the average rainy days across all months
         total_rainy_days = sum(self._avg_rainy_days_per_month)
         # 10 points per rainy day: a rainy day at 62 or 77 equals a sunny day at 72 because I like rain
-        return total_rainy_days * 10 / 366 # 366 days, feb 29 is in our dataset of 30 yrs
+        return total_rainy_days * 20 / 366 # 366 days, feb 29 is in our dataset of 30 yrs
     
     def get_total_score(self):
         """
