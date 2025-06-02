@@ -7,6 +7,7 @@ from load_stations_monthly_precip import load_stations_monthly_precip
 from map_grid import create_state_boundary_map_with_grid
 from pyproj import Transformer
 import subprocess
+from scipy.spatial import KDTree
 
 def create_precipitation_map(grid_spacing_miles=20):
     """
@@ -34,60 +35,57 @@ def create_precipitation_map(grid_spacing_miles=20):
     # Create a transformer to convert from lat/lon to the projected CRS
     transformer = Transformer.from_crs("EPSG:4326", "EPSG:5070", always_xy=True)
     
-    # Calculate precipitation scores for each grid cell
-    print("Calculating precipitation scores for each grid cell...")
-    grid_cell_scores = []
-    cells_without_stations = []
-    
     # Pre-compute all station points in the projected coordinate system
-    # Store as tuples of (station_id, station, point) sorted by X coordinate
     station_data = []
+    station_points = []
+    
     for station_id, station in stations.items():
         if station.latitude is not None and station.longitude is not None:
             # Transform station coordinates to the projected CRS
             station_x, station_y = transformer.transform(station.longitude, station.latitude)
             point = Point(station_x, station_y)
-            station_data.append((station_id, station, point, station_x))
-    
-    # Sort by X coordinate for faster spatial filtering
-    station_data.sort(key=lambda x: x[3])
+            station_data.append((station_id, station, point))
+            station_points.append((station_x, station_y))
     
     print(f"\nPre-computed coordinates for {len(station_data)} stations")
+    
+    # Create KDTree for efficient spatial queries
+    if not station_points:
+        print("No valid station points found!")
+        return plt
+        
+    kdtree = KDTree(station_points)
+    
+    # Calculate precipitation scores for each grid cell
+    print("Calculating precipitation scores for each grid cell...")
+    grid_cell_scores = []
+    cells_without_stations = []
+    
+    # Convert grid spacing from miles to meters (for the projected CRS)
+    # Assuming 1 mile = 1609.34 meters
+    grid_spacing_meters = grid_spacing_miles * 1609.34
     
     for i, cell in enumerate(grid_cells, 1):
         # Update progress
         print(f"\rCalculating precipitation scores: {i}/{len(grid_cells)} cells", end='')
         
-        # Get cell bounds
-        cell_minx, cell_miny, cell_maxx, cell_maxy = cell.bounds
+        # Get cell center and bounds
+        cell_center_x = (cell.bounds[0] + cell.bounds[2]) / 2
+        cell_center_y = (cell.bounds[1] + cell.bounds[3]) / 2
         
-        # Find stations within this grid cell's X range using binary search
-        # Find the first station with x >= cell_minx
-        left = 0
-        right = len(station_data) - 1
-        start_idx = len(station_data)
+        # Query KDTree for stations within the search radius
+        # Using the diagonal of the grid cell as the search radius to ensure we capture all stations
+        search_radius = np.sqrt(2) * (grid_spacing_meters / 2)
         
-        while left <= right:
-            mid = (left + right) // 2
-            if station_data[mid][3] < cell_minx:
-                left = mid + 1
-            else:
-                start_idx = mid
-                right = mid - 1
+        # Find indices of stations within the search radius
+        indices = kdtree.query_ball_point([cell_center_x, cell_center_y], search_radius)
         
-        # Find stations within this grid cell
+        # Filter stations that are actually within the cell
         stations_in_cell = []
-        
-        # Only check stations with x coordinates within the cell's x range
-        idx = start_idx
-        while idx < len(station_data) and station_data[idx][3] <= cell_maxx:
-            _, station, point, _ = station_data[idx]
-            
-            # Check if the station is within the cell
+        for idx in indices:
+            _, station, point = station_data[idx]
             if cell.contains(point):
                 stations_in_cell.append(station)
-            
-            idx += 1
         
         # Calculate average precipitation score if there are stations in the cell
         if stations_in_cell:
