@@ -112,3 +112,60 @@ I think I'll go the route of artificially generated grid rather than based on co
 
 Improving finding stations within a cell: naive took minutes. Removing stations we've already found was a little better. Sorting stations by X coordinate was much better. KD tree was the best.
 
+## June 3
+
+Asking claude code to analyze normals-daily:
+
+  1. Number of files: 9,839 files in the noaa/normals-daily/
+  directory
+  2. Unique station IDs: Yes, each filename is unique (no
+  duplicates found)
+  3. Different data based on headers: Yes, stations have
+  different data types. Looking at the header samples, I can see
+   variations in available columns - some stations have snow
+  data columns while others don't
+  4. Unique columns count: 126 unique columns exist across all
+  files
+  5. Files with temperature data: 7,501 files contain "TMAX"
+  temperature data (out of 9,839 total files)
+
+  The analysis shows significant variation in data availability
+  across stations - only about 76% of stations have temperature
+  data, and the 126 unique columns indicate substantial
+  differences in what weather metrics are recorded at different
+  locations.
+
+  - Files with precipitation data (PRCP): 9,307 files (94.6% of
+  all files)
+  - Files with both TMAX and PRCP: 6,969 files (70.8% of all
+  files)
+
+  This shows precipitation data is much more widely available
+  than temperature data across the weather stations.
+
+wc -l noaa/dly-tmax-normal.txt -> 90012 = 7501
+SO that's just a different file format but likely the same data. Hmm.
+
+Looking at trying to use heat index data instead of tmax, since heat index incorporates humidity to determine what the temperature actually feels like.
+
+https://www.ncei.noaa.gov/pub/data/cdo/documentation/NORMAL_MLY_documentation.pdf
+https://www.ncei.noaa.gov/data/normals-hourly/1991-2020/doc/Normals_HLY_Documentation_1991-2020.pdf
+
+The hourly datasets have the following:
+- hly-dewp-normal Dew point mean
+- hly-hidx-normal Heat index mean
+- hly-temp-normal Temperature mean
+- hly-wchl-normal Wind chill mean
+
+Sadly, the '91-'20 hourly data only has 467 stations.
+https://www.ncei.noaa.gov/access/search/data-search/normals-hourly-1991-2020
+
+'91-'20 daily has 15615 files? I think that's like twice what we have downloaded without '81-'10 data. 
+
+| Dataset | Monthly | Daily | Hourly |
+|---------|--------|-------|---------|
+| 1981-2010 | [9839](https://www.ncei.noaa.gov/access/search/data-search/normals-monthly) | [9839](https://www.ncei.noaa.gov/access/search/data-search/normals-daily) | [457](https://www.ncei.noaa.gov/access/search/data-search/normals-hourly) |
+| 1991-2020 | [15616](https://www.ncei.noaa.gov/access/search/data-search/normals-monthly-1991-2020) | [15615](https://www.ncei.noaa.gov/access/search/data-search/normals-daily-1991-2020) | [467](https://www.ncei.noaa.gov/access/search/data-search/normals-hourly-1991-2020) |
+| 2006-2020 | [13472](https://www.ncei.noaa.gov/access/search/data-search/normals-monthly-2006-2020) | [13472](https://www.ncei.noaa.gov/access/search/data-search/normals-daily-2006-2020) | [1150](https://www.ncei.noaa.gov/access/search/data-search/normals-hourly-2006-2020) |
+
+But according to the docs, while the '91 data has 15k stations, all (?) have precipitation but only 7300 have temperature?
