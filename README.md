@@ -1,4 +1,4 @@
-# Weather Data Visualization Project
+# Weather Data Mapping
 
 A Python-based project for visualizing weather data across the continental United States using NOAA weather station data. Creates comfort maps based on temperature and precipitation patterns, displayed on grid-based visualizations of the US.
 
